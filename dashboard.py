@@ -1,34 +1,18 @@
-"""
-dashboard.py — reads DIRECTLY from HDFS via Spark (Option B)
-------------------------------------------------------------
-Reads the Parquet written by stream_processor_hdfs.py straight from
-hdfs://192.168.0.234:9000/logs/... using a Spark session, converts to pandas,
-and renders the same Q1-Q4 dashboard. No local sync step needed.
-
-!!! HOW TO RUN — IMPORTANT !!!
-Because this uses Spark, you MUST launch it with spark-submit, NOT
-`streamlit run`. Launching with `streamlit run` gives a JVM/JavaPackage error
-because the Spark gateway isn't initialized.
-
-    spark-submit dashboard.py
-
-That works because Streamlit's own bootstrap is invoked from inside this file
-(see the __main__ guard at the bottom). If spark-submit cannot find streamlit,
-use:  python -m streamlit run dashboard.py  ONLY if Spark is import-only — but
-the supported path here is spark-submit.
-
-Override the HDFS location with env var if needed:
-    set HDFS_BASE=hdfs://192.168.0.234:9000/logs   (Windows)
-"""
-
 import os
 import sys
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from dotenv import load_dotenv
 
-HDFS_BASE = os.environ.get("HDFS_BASE", "hdfs://192.168.0.234:9000/logs")
+load_dotenv()
+
+HDFS_IP = os.getenv("HDFS_IP")
+HDFS_PORT = os.getenv("HDFS_PORT", "9000")
+
+
+HDFS_BASE = os.environ.get("HDFS_BASE", f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs")
 PROCESSED_DIR = f"{HDFS_BASE}/processed"
 ALERTS_DIR = f"{HDFS_BASE}/alerts"
 
