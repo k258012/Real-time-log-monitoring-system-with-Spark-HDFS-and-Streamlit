@@ -2,13 +2,13 @@
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "python log_generator_hdfs.py --rate 1200 --batch-interval 1"
 
 # Wait for log generator to initialize
-Start-Sleep -Seconds 10
+Start-Sleep -Seconds 30
 
 # Start Stream Processing
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "while (`$true) { spark-submit .\stream_processor_hdfs.py; Start-Sleep -Seconds 30 }"
 
 # Wait for stream processor startup
-Start-Sleep -Seconds 10
+Start-Sleep -Seconds 30
 
 # Start Batch Analysis
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "while (`$true) { spark-submit .\batch_analysis_hdfs.py; Start-Sleep -Seconds 60 }"
