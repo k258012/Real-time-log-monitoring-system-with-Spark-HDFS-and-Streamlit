@@ -1,25 +1,4 @@
-"""
-batch_analysis_hdfs.py
-----------------------
-Batch / offline layer — HDFS version.
-
-Reads the Parquet written by stream_processor_hdfs.py from HDFS and runs:
-  Q1. Per-service summary
-  Q2. Top noisy hosts
-  Q3. Hourly trend
-  Q4. K-Means anomaly detection (Spark MLlib)
-
-FIX (Uri without authority): the HDFS paths must include the NameNode
-host:port. "hdfs:///logs/..." (empty authority) only works when a default
-filesystem is configured (HADOOP_CONF_DIR on a cluster node). When running
-plain `spark-submit` from a laptop, you MUST use the explicit form
-"hdfs://192.168.0.234:9000/logs/..." or Spark errors with:
-    IllegalArgumentException: Uri without authority: hdfs:/logs/...
-
-Run:
-    spark-submit batch_analysis_hdfs.py
-"""
-
+import os
 import argparse
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.feature import StandardScaler, VectorAssembler
@@ -27,6 +6,14 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType
 
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
+# HDFS_IP = os.getenv("HDFS_IP")
+# HDFS_PORT = os.getenv("HDFS_PORT", "9000")
+HDFS_IP = "192.168.0.234"
+HDFS_PORT = "9000"
 
 def build_spark():
     return (
@@ -148,9 +135,9 @@ def maybe_write(df_result, report_out, name):
 def main():
     parser = argparse.ArgumentParser(description="Batch analysis on HDFS logs")
     parser.add_argument("--parquet-dir",
-                        default="hdfs://192.168.0.234:9000/logs/processed")
+                        default=f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs/processed")
     parser.add_argument("--report-out",
-                        default="hdfs://192.168.0.234:9000/logs/reports",
+                        default=f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs/reports",
                         help="Where to write summary Parquet ('none' to skip)")
     parser.add_argument("--k", type=int, default=3)
     args = parser.parse_args()
