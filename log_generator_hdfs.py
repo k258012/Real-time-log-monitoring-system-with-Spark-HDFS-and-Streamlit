@@ -1,31 +1,3 @@
-"""
-log_generator_hdfs.py
----------------------
-HDFS version of the log generator. Writes JSONL log files directly into an
-HDFS directory that stream_processor_hdfs.py watches.
-
-HDFS notes
-----------
-* `hdfs dfs -mv` within the same filesystem IS atomic (a NameNode metadata op).
-  So we write to "<name>.tmp", then -mv it to "<name>.jsonl". Spark's file
-  source only ever sees the complete, renamed file.
-* We stage each batch to a small LOCAL temp file first, -put it to HDFS as
-  "<name>.tmp", then -mv to "<name>.jsonl".
-* HDFS dislikes many tiny files. Keep --batch-interval >= 1s.
-
-IMPORTANT — WHERE TO RUN THIS
------------------------------
-This script shells out to the `hdfs` command. It therefore ONLY works on a
-machine that has a Hadoop client installed (the machine running HDFS, e.g.
-192.168.0.234). Running it on a laptop without Hadoop gives:
-    [WinError 2] The system cannot find the file specified
-That error means `hdfs` was not found on PATH — you are on the wrong machine
-(or Hadoop's bin folder is not on PATH).
-
-Usage (ON the Hadoop machine):
-    python log_generator_hdfs.py --rate 3000 --batch-interval 1.0 --duration 120
-"""
-
 import argparse
 import json
 import os
@@ -39,6 +11,13 @@ import uuid
 from datetime import datetime, timezone
 
 from faker import Faker
+from dotenv import load_dotenv
+
+load_dotenv()
+
+HDFS_IP = os.getenv("HDFS_IP")
+HDFS_PORT = os.getenv("HDFS_PORT", "9000")
+
 
 
 SERVICES = {
@@ -138,7 +117,7 @@ def write_batch_hdfs(hdfs_dir: str, events: list) -> str:
 def main():
     parser = argparse.ArgumentParser(description="JSON log generator -> HDFS")
     parser.add_argument("--hdfs-dir",
-                        default="hdfs://192.168.0.234:9000/logs/raw_logs",
+                        default=f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs/raw_logs",
                         help="HDFS directory Spark watches")
     parser.add_argument("--rate", type=int, default=3000,
                         help="Events per minute")
@@ -155,7 +134,6 @@ def main():
     HDFS_BIN = find_hdfs()
     if not HDFS_BIN:
         print("ERROR: the 'hdfs' command was not found on this machine.\n", file=sys.stderr)
-        print("This script must run ON the Hadoop machine (e.g. 192.168.0.234),", file=sys.stderr)
         print("not on a laptop without Hadoop installed.\n", file=sys.stderr)
         print("Checklist:", file=sys.stderr)
         print("  1. Are you on the machine that runs HDFS? (prompt should NOT be H:\\...)", file=sys.stderr)
