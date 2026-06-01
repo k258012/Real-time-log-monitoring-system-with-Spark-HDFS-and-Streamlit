@@ -38,18 +38,7 @@ hdfs dfs -ls /logs
 ## 2. Start the streaming job on YARN (Node 1 / any client node)
 
 ```bash
-spark-submit \
-  --master yarn \
-  --deploy-mode client \
-  --num-executors 3 \
-  --executor-cores 2 \
-  --executor-memory 4g \
-  --driver-memory 2g \
-  stream_processor_hdfs.py \
-    --input-dir   hdfs://IP:PORT/logs/raw_logs \
-    --parquet-out hdfs://IP:PORT/logs/processed \
-    --alerts-out  hdfs://IP:PORT/logs/alerts \
-    --checkpoint  hdfs://IP:PORT/logs/checkpoints
+spark-submit .\stream_processor_hdfs.py
 ```
 
 Leave this running. It prints 1-minute rolling metrics to the console.
@@ -59,32 +48,19 @@ Leave this running. It prints 1-minute rolling metrics to the console.
 In a second terminal:
 
 ```bash
-python3 log_generator_hdfs.py \
-  --hdfs-dir hdfs://IP:PORT/logs/raw_logs \
-  --rate 80000 \
-  --batch-interval 1.0 \
-  --anomaly-prob 0.03
+python log_generator_hdfs.py --rate 1200 --batch-interval 1
 ```
 
 For a quick test instead of full load:
 
 ```bash
-python3 log_generator_hdfs.py --hdfs-dir hdfs://IP:PORT/logs/raw_logs --rate 3000 --duration 120
+python log_generator_hdfs.py --hdfs-dir hdfs://IP:PORT/logs/raw_logs --rate 3000 --duration 120
 ```
 
 ## 4. Run batch analysis on the cluster (after a few minutes of data)
 
 ```bash
-spark-submit \
-  --master yarn \
-  --deploy-mode client \
-  --num-executors 3 \
-  --executor-cores 2 \
-  --executor-memory 4g \
-  batch_analysis_hdfs.py \
-    --parquet-dir hdfs://IP:PORT/logs/processed \
-    --report-out  hdfs://IP:PORT/logs/reports \
-    --k 3
+spark-submit .\batch_analysis_hdfs.py
 ```
 
 This prints Q1–Q4 and writes summary Parquet under `hdfs://IP:PORT/logs/reports`.
@@ -99,7 +75,7 @@ hdfs dfs -ls -R /logs/reports
 
 
 ```bash
-streamlit run dashboard.py
+python -m streamlit run .\dashboard.py
 ```
 
 The dashboard's own auto-refresh (every 10s) will then reflect whatever the
