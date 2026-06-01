@@ -1,32 +1,18 @@
-"""
-stream_processor_hdfs.py
-------------------------
-PySpark Structured Streaming pipeline — HDFS version.
-
-All paths are hdfs://192.168.0.234:9000/... URIs.
-
-FIX (checkpoint bug): EVERY streaming query — including the console sink —
-must have an explicit checkpointLocation on HDFS. If the console sink has no
-checkpoint, Spark auto-creates a TEMP checkpoint on the local C: drive and
-then tries to use that Windows path inside HDFS, producing an invalid URI like
-  hdfs://192.168.0.234:9000/C:/Users/.../Temp/temporary-...
-and crashes with "Invalid path name". Giving each query its own HDFS
-checkpoint avoids this.
-
-Run (local Spark talking to remote HDFS):
-    spark-submit stream_processor_hdfs.py
-
-Run on YARN (if a ResourceManager is reachable):
-    spark-submit --master yarn --deploy-mode client stream_processor_hdfs.py
-"""
-
+import os
 import argparse
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
     DoubleType, IntegerType, StringType, StructField, StructType,
 )
+# from dotenv import load_dotenv
 
+# load_dotenv()
+
+# HDFS_IP = os.getenv("HDFS_IP")
+# HDFS_PORT = os.getenv("HDFS_PORT", "9000")
+HDFS_IP = "192.168.0.234"
+HDFS_PORT = "9000"
 
 LOG_SCHEMA = StructType([
     StructField("timestamp",        StringType(),  nullable=False),
@@ -55,10 +41,10 @@ def build_spark(app_name: str) -> SparkSession:
 
 def main():
     parser = argparse.ArgumentParser(description="PySpark log stream processor (HDFS)")
-    parser.add_argument("--input-dir",     default="hdfs://192.168.0.234:9000/logs/raw_logs")
-    parser.add_argument("--parquet-out",   default="hdfs://192.168.0.234:9000/logs/processed")
-    parser.add_argument("--alerts-out",    default="hdfs://192.168.0.234:9000/logs/alerts")
-    parser.add_argument("--checkpoint",    default="hdfs://192.168.0.234:9000/logs/checkpoints")
+    parser.add_argument("--input-dir",     default=f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs/raw_logs")
+    parser.add_argument("--parquet-out",   default=f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs/processed")
+    parser.add_argument("--alerts-out",    default=f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs/alerts")
+    parser.add_argument("--checkpoint",    default=f"hdfs://{HDFS_IP}:{HDFS_PORT}/logs/checkpoints")
     parser.add_argument("--error-threshold", type=float, default=0.30)
     parser.add_argument("--trigger-seconds", type=int, default=2)
     args = parser.parse_args()
