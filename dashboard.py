@@ -43,7 +43,6 @@ def get_spark():
     return (
         SparkSession.builder
         .appName("LogDashboard")
-        .master("local[*]")
         .config("spark.sql.session.timeZone", "UTC")
         .config("spark.ui.showConsoleProgress", "false")
         .getOrCreate()
@@ -112,9 +111,15 @@ def run_app():
     st.title("📊 Real-Time Log Monitoring — HDFS Dashboard")
     st.caption("Cluster 01 · Big Data Analytics · reads Parquet directly from HDFS")
 
-    @st.fragment
+    # Auto-refresh: set run_every from the checkbox. When the box is toggled,
+    # the main script reruns and re-evaluates this decoration with the new value
+    # (10 seconds when checked, None when not), so unchecking genuinely stops it.
+    # This avoids st.rerun(scope="fragment"), which isn't allowed on the first
+    # fragment pass in all Streamlit versions.
+    refresh_interval = 10 if st.session_state.get("auto_on") else None
+
+    @st.fragment(run_every=refresh_interval)
     def render_dashboard():
-        import time as _time
         load_events.clear()
         load_alerts.clear()
         df = load_events()
@@ -252,11 +257,6 @@ def run_app():
 
         st.caption("Reading live from HDFS. Leave the generator + "
                    "stream_processor_hdfs.py running.")
-
-        # self-reschedule only while the box is checked
-        if st.session_state.get("auto_on"):
-            _time.sleep(10)
-            st.rerun(scope="fragment")
 
     render_dashboard()
 
